@@ -5,79 +5,106 @@
   <title>Rezerwacja Terminów</title>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
   <style>
-    #calendar {
-      max-width: 900px;
-      margin: 40px auto;
-    }
-    #confirmBox {
-      text-align: center;
-      margin-top: 20px;
-      display: none;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-    }
+    #calendar { max-width: 900px; margin: 40px auto; }
+    #formBox { text-align: center; margin-top: 20px; display: none; }
+    input { display: block; margin: 10px auto; padding: 10px; width: 300px; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    .confirmed { background-color: #28a745; color: white; padding: 5px; border-radius: 4px; }
   </style>
 </head>
 <body>
 
-  <h1 style="text-align:center">Kalendarz Rezerwacji (tylko weekendy)</h1>
+  <h1 style="text-align:center">Rezerwacja terminu (weekendy)</h1>
   <div id="calendar"></div>
-  <div id="confirmBox">
-    <p id="selectedDateText"></p>
-    <button onclick="confirmDate()">Potwierdź termin</button>
+
+  <div id="formBox">
+    <h3>Wybrany termin: <span id="selectedDateText"></span></h3>
+    <input type="text" id="name" placeholder="Imię i nazwisko" required>
+    <input type="email" id="email" placeholder="Twój e-mail" required>
+    <input type="tel" id="phone" placeholder="Telefon" required>
+    <button onclick="sendReservation()">Wyślij rezerwację</button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
   <script>
     let selectedDate = null;
     let confirmedDates = [];
 
+    // ✅ Wklej tutaj swoje dane z EmailJS
+    const serviceID = "YOUR_SERVICE_ID";
+    const templateID = "YOUR_TEMPLATE_ID";
+    const publicKey = "YOUR_PUBLIC_KEY";
+
+    emailjs.init(publicKey);
+
     document.addEventListener('DOMContentLoaded', function () {
       const calendarEl = document.getElementById('calendar');
-
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'pl',
         selectable: true,
-        selectAllow: function (selectInfo) {
-          const day = selectInfo.start.getDay();
-          return day === 0 || day === 6; // 0 = niedziela, 6 = sobota
+        selectAllow: function (info) {
+          const day = info.start.getDay();
+          return day === 0 || day === 6; // tylko weekend
         },
         dateClick: function (info) {
           const day = info.date.getDay();
-          if (day !== 0 && day !== 6) return; // Ignoruj jeśli nie weekend
+          if (day !== 0 && day !== 6) return;
 
           if (confirmedDates.includes(info.dateStr)) {
-            alert("Ten termin został już potwierdzony.");
+            alert("Termin już zarezerwowany.");
             return;
           }
 
           selectedDate = info.dateStr;
-          document.getElementById("selectedDateText").innerText = "Czy potwierdzasz termin: " + selectedDate + "?";
-          document.getElementById("confirmBox").style.display = "block";
+          document.getElementById("selectedDateText").innerText = selectedDate;
+          document.getElementById("formBox").style.display = "block";
         },
-        events: [] // Potwierdzone terminy będą tu dodawane dynamicznie
+        events: []
       });
 
-      window.confirmDate = function () {
-        if (!selectedDate) return;
-        calendar.addEvent({
-          title: '✔ Potwierdzony',
-          start: selectedDate,
-          allDay: true,
-          color: '#28a745'
-        });
-        confirmedDates.push(selectedDate);
-        document.getElementById("confirmBox").style.display = "none";
-        selectedDate = null;
+      window.sendReservation = function () {
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const phone = document.getElementById("phone").value.trim();
+
+        if (!name || !email || !phone || !selectedDate) {
+          alert("Wypełnij wszystkie pola.");
+          return;
+        }
+
+        const params = {
+          to_name: "Właściciel", // odbiorca (Ty)
+          from_name: name,
+          email: email,
+          phone: phone,
+          date: selectedDate,
+        };
+
+        emailjs.send(serviceID, templateID, params)
+          .then(function () {
+            alert("Rezerwacja wysłana! Oczekuj potwierdzenia.");
+            calendar.addEvent({
+              title: 'Wysłano rezerwację',
+              start: selectedDate,
+              allDay: true,
+              color: '#ffc107'
+            });
+            confirmedDates.push(selectedDate);
+            document.getElementById("formBox").style.display = "none";
+            document.getElementById("name").value = "";
+            document.getElementById("email").value = "";
+            document.getElementById("phone").value = "";
+          }, function (error) {
+            console.error("Błąd:", error);
+            alert("Błąd podczas wysyłania. Spróbuj ponownie.");
+          });
       };
 
       calendar.render();
     });
   </script>
-
 </body>
 </html>
 
