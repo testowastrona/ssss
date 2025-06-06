@@ -81,6 +81,14 @@
           phone: phone,
           date: selectedDate,
         };
+console.log("Wysyłane dane:", params);
+emailjs.send(serviceID, templateID, params)
+  .then(() => {
+    alert("Rezerwacja wysłana!");
+  }, (error) => {
+    console.error("Błąd:", error);
+    alert("Błąd podczas wysyłania. Spróbuj ponownie.");
+  });
 
         emailjs.send(serviceID, templateID, params)
           .then(function () {
