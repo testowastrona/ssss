@@ -2,37 +2,78 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Kalendarz Rezerwacji</title>
+  <title>Rezerwacja Terminów</title>
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
     #calendar {
       max-width: 900px;
-      margin: 0 auto;
+      margin: 40px auto;
+    }
+    #confirmBox {
+      text-align: center;
+      margin-top: 20px;
+      display: none;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-  <h1>Kalendarz Rezerwacji</h1>
+  <h1 style="text-align:center">Kalendarz Rezerwacji (tylko weekendy)</h1>
   <div id="calendar"></div>
+  <div id="confirmBox">
+    <p id="selectedDateText"></p>
+    <button onclick="confirmDate()">Potwierdź termin</button>
+  </div>
 
-  <!-- JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
   <script>
+    let selectedDate = null;
+    let confirmedDates = [];
+
     document.addEventListener('DOMContentLoaded', function () {
       const calendarEl = document.getElementById('calendar');
+
       const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'pl',
         selectable: true,
-        dateClick: function(info) {
-          alert('Wybrana data: ' + info.dateStr);
-        }
+        selectAllow: function (selectInfo) {
+          const day = selectInfo.start.getDay();
+          return day === 0 || day === 6; // 0 = niedziela, 6 = sobota
+        },
+        dateClick: function (info) {
+          const day = info.date.getDay();
+          if (day !== 0 && day !== 6) return; // Ignoruj jeśli nie weekend
+
+          if (confirmedDates.includes(info.dateStr)) {
+            alert("Ten termin został już potwierdzony.");
+            return;
+          }
+
+          selectedDate = info.dateStr;
+          document.getElementById("selectedDateText").innerText = "Czy potwierdzasz termin: " + selectedDate + "?";
+          document.getElementById("confirmBox").style.display = "block";
+        },
+        events: [] // Potwierdzone terminy będą tu dodawane dynamicznie
       });
+
+      window.confirmDate = function () {
+        if (!selectedDate) return;
+        calendar.addEvent({
+          title: '✔ Potwierdzony',
+          start: selectedDate,
+          allDay: true,
+          color: '#28a745'
+        });
+        confirmedDates.push(selectedDate);
+        document.getElementById("confirmBox").style.display = "none";
+        selectedDate = null;
+      };
+
       calendar.render();
     });
   </script>
@@ -40,6 +81,3 @@
 </body>
 </html>
 
-
-</body>
-</html>
